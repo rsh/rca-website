@@ -1,5 +1,5 @@
 /**
- * TypeScript types for API communication
+ * TypeScript types for RCA API communication
  */
 
 export interface User {
@@ -9,20 +9,25 @@ export interface User {
   created_at: string;
 }
 
-export interface Category {
+export interface Rca {
   id: number;
   name: string;
   description: string | null;
+  timeline: string | null;
+  owner: User | null;
+  nodes?: WhyNode[];
   created_at: string;
+  updated_at: string;
 }
 
-export interface Item {
+export interface WhyNode {
   id: number;
-  title: string;
-  description: string | null;
-  category: Category | null;
-  owner: User | null;
-  status: "active" | "inactive" | "archived";
+  rca_id: number;
+  parent_id: number | null;
+  node_type: "why" | "root_cause";
+  content: string;
+  order: number;
+  children: WhyNode[];
   created_at: string;
   updated_at: string;
 }
@@ -44,23 +49,27 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface ItemCreateRequest {
-  title: string;
-  description?: string;
-  category_id?: number;
-  status?: "active" | "inactive" | "archived";
-}
-
-export interface ItemUpdateRequest {
-  title?: string;
-  description?: string;
-  category_id?: number;
-  status?: "active" | "inactive" | "archived";
-}
-
-export interface CategoryCreateRequest {
+export interface RcaCreateRequest {
   name: string;
   description?: string;
+  timeline?: string;
+}
+
+export interface RcaUpdateRequest {
+  name?: string;
+  description?: string;
+  timeline?: string;
+}
+
+export interface WhyNodeCreateRequest {
+  parent_id?: number | null;
+  node_type: "why" | "root_cause";
+  content: string;
+}
+
+export interface WhyNodeUpdateRequest {
+  content?: string;
+  node_type?: "why" | "root_cause";
 }
 
 export interface ApiError {

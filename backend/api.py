@@ -6,9 +6,10 @@ from flask_cors import CORS
 from pydantic import ValidationError
 
 from auth import generate_token, login_required, validate_request_json
-from models import Category, Item, User, db
-from schemas import (CategoryCreateRequest, ItemCreateRequest,
-                     ItemUpdateRequest, LoginRequest, RegisterRequest)
+from models import Rca, User, WhyNode, db
+from schemas import (LoginRequest, RcaCreateRequest, RcaUpdateRequest,
+                     RegisterRequest, WhyNodeCreateRequest,
+                     WhyNodeUpdateRequest)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -93,147 +94,200 @@ def get_current_user_info(current_user: User) -> tuple[dict, int]:
 
 
 # ============================================================================
-# Category Endpoints
+# RCA Endpoints
 # ============================================================================
 
 
-@app.route("/api/categories", methods=["GET"])
-def get_categories() -> tuple[dict, int]:
-    """Get all categories."""
-    categories = Category.query.order_by(Category.name).all()
-    return {"categories": [cat.to_dict() for cat in categories]}, 200
-
-
-@app.route("/api/categories", methods=["POST"])
+@app.route("/api/rcas", methods=["GET"])
 @login_required
-@validate_request_json(["name"])
-def create_category(current_user: User) -> tuple[dict, int]:
-    """Create a new category."""
-    try:
-        data = CategoryCreateRequest(**request.get_json())
-    except ValidationError as e:
-        return {"error": e.errors()}, 400
-
-    # Check if category already exists
-    if Category.query.filter_by(name=data.name).first():
-        return {"error": "Category already exists"}, 400
-
-    category = Category(name=data.name, description=data.description)
-    db.session.add(category)
-    db.session.commit()
-
-    return {"category": category.to_dict()}, 201
-
-
-# ============================================================================
-# Item Endpoints
-# ============================================================================
-
-
-@app.route("/api/items", methods=["GET"])
-@login_required
-def get_items(current_user: User) -> tuple[dict, int]:
-    """Get all items for the current user."""
-    items = (
-        Item.query.filter_by(owner_id=current_user.id)
-        .order_by(Item.created_at.desc())
+def get_rcas(current_user: User) -> tuple[dict, int]:
+    """Get all RCAs for the current user."""
+    rcas = (
+        Rca.query.filter_by(owner_id=current_user.id)
+        .order_by(Rca.created_at.desc())
         .all()
     )
-    return {"items": [item.to_dict() for item in items]}, 200
+    return {"rcas": [rca.to_dict() for rca in rcas]}, 200
 
 
-@app.route("/api/items/<int:item_id>", methods=["GET"])
+@app.route("/api/rcas", methods=["POST"])
 @login_required
-def get_item(item_id: int, current_user: User) -> tuple[dict, int]:
-    """Get a specific item."""
-    item = db.session.get(Item, item_id)
-    if not item:
-        return {"error": "Item not found"}, 404
-
-    if item.owner_id != current_user.id:
-        return {"error": "Unauthorized"}, 403
-
-    return {"item": item.to_dict()}, 200
-
-
-@app.route("/api/items", methods=["POST"])
-@login_required
-@validate_request_json(["title"])
-def create_item(current_user: User) -> tuple[dict, int]:
-    """Create a new item."""
+@validate_request_json(["name"])
+def create_rca(current_user: User) -> tuple[dict, int]:
+    """Create a new RCA."""
     try:
-        data = ItemCreateRequest(**request.get_json())
+        data = RcaCreateRequest(**request.get_json())
     except ValidationError as e:
         return {"error": e.errors()}, 400
 
-    # Validate category if provided
-    if data.category_id:
-        category = db.session.get(Category, data.category_id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-    item = Item(
-        title=data.title,
+    rca = Rca(
+        name=data.name,
         description=data.description,
-        category_id=data.category_id,
-        status=data.status,
+        timeline=data.timeline,
         owner_id=current_user.id,
     )
-    db.session.add(item)
+    db.session.add(rca)
     db.session.commit()
 
-    return {"item": item.to_dict()}, 201
+    return {"rca": rca.to_dict()}, 201
 
 
-@app.route("/api/items/<int:item_id>", methods=["PATCH"])
+@app.route("/api/rcas/<int:rca_id>", methods=["GET"])
 @login_required
-def update_item(item_id: int, current_user: User) -> tuple[dict, int]:
-    """Update an item."""
-    item = db.session.get(Item, item_id)
-    if not item:
-        return {"error": "Item not found"}, 404
+def get_rca(rca_id: int, current_user: User) -> tuple[dict, int]:
+    """Get a specific RCA with full why tree."""
+    rca = db.session.get(Rca, rca_id)
+    if not rca:
+        return {"error": "RCA not found"}, 404
 
-    if item.owner_id != current_user.id:
+    if rca.owner_id != current_user.id:
+        return {"error": "Unauthorized"}, 403
+
+    return {"rca": rca.to_dict_with_tree()}, 200
+
+
+@app.route("/api/rcas/<int:rca_id>", methods=["PATCH"])
+@login_required
+def update_rca(rca_id: int, current_user: User) -> tuple[dict, int]:
+    """Update an RCA."""
+    rca = db.session.get(Rca, rca_id)
+    if not rca:
+        return {"error": "RCA not found"}, 404
+
+    if rca.owner_id != current_user.id:
         return {"error": "Unauthorized"}, 403
 
     try:
-        data = ItemUpdateRequest(**request.get_json())
+        data = RcaUpdateRequest(**request.get_json())
     except ValidationError as e:
         return {"error": e.errors()}, 400
 
-    # Update fields if provided
-    if data.title is not None:
-        item.title = data.title
+    if data.name is not None:
+        rca.name = data.name
     if data.description is not None:
-        item.description = data.description
-    if data.category_id is not None:
-        category = db.session.get(Category, data.category_id)
-        if not category:
-            return {"error": "Category not found"}, 404
-        item.category_id = data.category_id
-    if data.status is not None:
-        item.status = data.status
+        rca.description = data.description
+    if data.timeline is not None:
+        rca.timeline = data.timeline
 
     db.session.commit()
 
-    return {"item": item.to_dict()}, 200
+    return {"rca": rca.to_dict()}, 200
 
 
-@app.route("/api/items/<int:item_id>", methods=["DELETE"])
+@app.route("/api/rcas/<int:rca_id>", methods=["DELETE"])
 @login_required
-def delete_item(item_id: int, current_user: User) -> tuple[dict, int]:
-    """Delete an item."""
-    item = db.session.get(Item, item_id)
-    if not item:
-        return {"error": "Item not found"}, 404
+def delete_rca(rca_id: int, current_user: User) -> tuple[dict, int]:
+    """Delete an RCA (cascades nodes)."""
+    rca = db.session.get(Rca, rca_id)
+    if not rca:
+        return {"error": "RCA not found"}, 404
 
-    if item.owner_id != current_user.id:
+    if rca.owner_id != current_user.id:
         return {"error": "Unauthorized"}, 403
 
-    db.session.delete(item)
+    db.session.delete(rca)
     db.session.commit()
 
-    return {"message": "Item deleted successfully"}, 200
+    return {"message": "RCA deleted successfully"}, 200
+
+
+# ============================================================================
+# WhyNode Endpoints
+# ============================================================================
+
+
+@app.route("/api/rcas/<int:rca_id>/nodes", methods=["POST"])
+@login_required
+@validate_request_json(["content"])
+def create_node(rca_id: int, current_user: User) -> tuple[dict, int]:
+    """Add a why/root-cause node to an RCA."""
+    rca = db.session.get(Rca, rca_id)
+    if not rca:
+        return {"error": "RCA not found"}, 404
+
+    if rca.owner_id != current_user.id:
+        return {"error": "Unauthorized"}, 403
+
+    try:
+        data = WhyNodeCreateRequest(**request.get_json())
+    except ValidationError as e:
+        return {"error": e.errors()}, 400
+
+    # Top-level nodes must be "why" type
+    if data.parent_id is None and data.node_type != "why":
+        return {"error": "Top-level nodes must be of type 'why'"}, 400
+
+    # Validate parent exists and belongs to same RCA
+    if data.parent_id is not None:
+        parent = db.session.get(WhyNode, data.parent_id)
+        if not parent or parent.rca_id != rca_id:
+            return {"error": "Parent node not found in this RCA"}, 404
+
+    # Calculate order for new node
+    if data.parent_id is None:
+        sibling_count = WhyNode.query.filter_by(rca_id=rca_id, parent_id=None).count()
+    else:
+        sibling_count = WhyNode.query.filter_by(
+            rca_id=rca_id, parent_id=data.parent_id
+        ).count()
+
+    node = WhyNode(
+        rca_id=rca_id,
+        parent_id=data.parent_id,
+        node_type=data.node_type,
+        content=data.content,
+        order=sibling_count,
+    )
+    db.session.add(node)
+    db.session.commit()
+
+    return {"node": node.to_dict()}, 201
+
+
+@app.route("/api/nodes/<int:node_id>", methods=["PATCH"])
+@login_required
+def update_node(node_id: int, current_user: User) -> tuple[dict, int]:
+    """Update a why node's content or type."""
+    node = db.session.get(WhyNode, node_id)
+    if not node:
+        return {"error": "Node not found"}, 404
+
+    if node.rca.owner_id != current_user.id:
+        return {"error": "Unauthorized"}, 403
+
+    try:
+        data = WhyNodeUpdateRequest(**request.get_json())
+    except ValidationError as e:
+        return {"error": e.errors()}, 400
+
+    if data.content is not None:
+        node.content = data.content
+    if data.node_type is not None:
+        # Top-level nodes must stay "why"
+        if node.parent_id is None and data.node_type != "why":
+            return {"error": "Top-level nodes must be of type 'why'"}, 400
+        node.node_type = data.node_type
+
+    db.session.commit()
+
+    return {"node": node.to_dict()}, 200
+
+
+@app.route("/api/nodes/<int:node_id>", methods=["DELETE"])
+@login_required
+def delete_node(node_id: int, current_user: User) -> tuple[dict, int]:
+    """Delete a why node (cascades children)."""
+    node = db.session.get(WhyNode, node_id)
+    if not node:
+        return {"error": "Node not found"}, 404
+
+    if node.rca.owner_id != current_user.id:
+        return {"error": "Unauthorized"}, 403
+
+    db.session.delete(node)
+    db.session.commit()
+
+    return {"message": "Node deleted successfully"}, 200
 
 
 # ============================================================================

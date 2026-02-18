@@ -29,26 +29,32 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class ItemCreateRequest(BaseModel):
-    """Schema for creating an item."""
+class RcaCreateRequest(BaseModel):
+    """Schema for creating an RCA."""
 
-    title: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
-    category_id: Optional[int] = None
-    status: str = Field(default="active", pattern="^(active|inactive|archived)$")
+    timeline: Optional[str] = None
 
 
-class ItemUpdateRequest(BaseModel):
-    """Schema for updating an item."""
+class RcaUpdateRequest(BaseModel):
+    """Schema for updating an RCA."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
-    category_id: Optional[int] = None
-    status: Optional[str] = Field(None, pattern="^(active|inactive|archived)$")
+    timeline: Optional[str] = None
 
 
-class CategoryCreateRequest(BaseModel):
-    """Schema for creating a category."""
+class WhyNodeCreateRequest(BaseModel):
+    """Schema for creating a why node."""
 
-    name: str = Field(min_length=1, max_length=100)
-    description: Optional[str] = None
+    parent_id: Optional[int] = None
+    node_type: str = Field(default="why", pattern="^(why|root_cause)$")
+    content: str = Field(min_length=1)
+
+
+class WhyNodeUpdateRequest(BaseModel):
+    """Schema for updating a why node."""
+
+    content: Optional[str] = Field(None, min_length=1)
+    node_type: Optional[str] = Field(None, pattern="^(why|root_cause)$")

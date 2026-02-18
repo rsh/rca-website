@@ -1,4 +1,4 @@
-"""Database models - example template with User and domain models."""
+"""Database models for the RCA (Root Cause Analysis) tool."""
 from datetime import datetime, timezone
 from typing import Any, Dict, List, cast
 
@@ -27,10 +27,9 @@ class User(db.Model):  # type: ignore  # db.Model lacks type stubs
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationships - customize based on your domain
-    items = cast(
-        List["Item"],
-        db.relationship("Item", back_populates="owner", cascade="all, delete-orphan"),
+    rcas = cast(
+        List["Rca"],
+        db.relationship("Rca", back_populates="owner", cascade="all, delete-orphan"),
     )
 
     def set_password(self, password: str) -> None:
@@ -53,45 +52,16 @@ class User(db.Model):  # type: ignore  # db.Model lacks type stubs
         return data
 
 
-class Category(db.Model):  # type: ignore  # db.Model lacks type stubs
-    """Example category model - demonstrates a simple lookup table."""
+class Rca(db.Model):  # type: ignore  # db.Model lacks type stubs
+    """Root Cause Analysis model."""
 
-    __tablename__ = "categories"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
-    description = db.Column(db.Text, nullable=True)
-    created_at = db.Column(
-        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
-    )
-
-    # Relationships
-    items = cast(
-        List["Item"],
-        db.relationship("Item", back_populates="category"),
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert category to dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "created_at": self.created_at.isoformat(),
-        }
-
-
-class Item(db.Model):  # type: ignore  # db.Model lacks type stubs
-    """Example item model - demonstrates a typical domain entity with relationships."""
-
-    __tablename__ = "items"
+    __tablename__ = "rcas"
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=True)
+    timeline = db.Column(db.Text, nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    status = db.Column(db.String(50), nullable=False, default="active")
     created_at = db.Column(
         db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
@@ -102,19 +72,88 @@ class Item(db.Model):  # type: ignore  # db.Model lacks type stubs
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationships
-    category = cast("Category", db.relationship("Category", back_populates="items"))
-    owner = cast("User", db.relationship("User", back_populates="items"))
+    owner = cast("User", db.relationship("User", back_populates="rcas"))
+    nodes = cast(
+        List["WhyNode"],
+        db.relationship(
+            "WhyNode",
+            back_populates="rca",
+            cascade="all, delete-orphan",
+            order_by="WhyNode.order",
+        ),
+    )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert item to dictionary."""
+        """Convert RCA to dictionary (without nodes)."""
         return {
             "id": self.id,
-            "title": self.title,
+            "name": self.name,
             "description": self.description,
-            "category": self.category.to_dict() if self.category else None,
+            "timeline": self.timeline,
             "owner": self.owner.to_dict() if self.owner else None,
-            "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+    def to_dict_with_tree(self) -> Dict[str, Any]:
+        """Convert RCA to dictionary with full why-node tree."""
+        data = self.to_dict()
+        # Build tree from flat list
+        top_level = [n for n in self.nodes if n.parent_id is None]
+        data["nodes"] = [
+            n.to_tree_dict() for n in sorted(top_level, key=lambda n: n.order)
+        ]
+        return data
+
+
+class WhyNode(db.Model):  # type: ignore  # db.Model lacks type stubs
+    """A node in the 5 Whys tree."""
+
+    __tablename__ = "why_nodes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    rca_id = db.Column(db.Integer, db.ForeignKey("rcas.id"), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey("why_nodes.id"), nullable=True)
+    node_type = db.Column(db.String(20), nullable=False, default="why")
+    content = db.Column(db.Text, nullable=False)
+    order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    rca = cast("Rca", db.relationship("Rca", back_populates="nodes"))
+    children = cast(
+        List["WhyNode"],
+        db.relationship(
+            "WhyNode",
+            backref=db.backref("parent", remote_side="WhyNode.id"),
+            cascade="all, delete-orphan",
+            order_by="WhyNode.order",
+        ),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to flat dictionary."""
+        return {
+            "id": self.id,
+            "rca_id": self.rca_id,
+            "parent_id": self.parent_id,
+            "node_type": self.node_type,
+            "content": self.content,
+            "order": self.order,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+    def to_tree_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary with recursive children."""
+        data = self.to_dict()
+        sorted_children: List[WhyNode] = sorted(self.children, key=lambda c: c.order)
+        data["children"] = [c.to_tree_dict() for c in sorted_children]
+        return data

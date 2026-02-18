@@ -5,13 +5,13 @@
 import {
   createLoginForm,
   createRegisterForm,
-  createItemForm,
-  createItemsTable,
-  createCategoryForm,
+  createRcaForm,
+  createRcaList,
+  createWhyTree,
   showError,
   showSuccess,
 } from "../components";
-import type { Category, Item } from "../api";
+import type { Rca, WhyNode } from "../api";
 
 describe("Components", () => {
   beforeEach(() => {
@@ -59,166 +59,210 @@ describe("Components", () => {
     });
   });
 
-  describe("createItemForm", () => {
-    const mockCategories: Category[] = [
-      { id: 1, name: "Tech", description: "Technology", created_at: "2024-01-01" },
-      { id: 2, name: "Books", description: "Books", created_at: "2024-01-01" },
-    ];
-
-    it("creates an empty form for new items", () => {
-      const form = createItemForm(mockCategories);
+  describe("createRcaForm", () => {
+    it("creates an empty form for new RCAs", () => {
+      const form = createRcaForm();
       expect(form.tagName).toBe("FORM");
-      expect(form.querySelector("#item-title")).toBeTruthy();
-      expect(form.querySelector("#item-description")).toBeTruthy();
-      expect(form.querySelector("#item-category")).toBeTruthy();
-      expect(form.querySelector("#item-status")).toBeTruthy();
-      expect(form.textContent).toContain("Create New Item");
+      expect(form.querySelector("#rca-name")).toBeTruthy();
+      expect(form.querySelector("#rca-description")).toBeTruthy();
+      expect(form.querySelector("#rca-timeline")).toBeTruthy();
+      expect(form.textContent).toContain("Create New RCA");
     });
 
-    it("populates form with existing item data", () => {
-      const mockItem: Item = {
+    it("populates form with existing RCA data", () => {
+      const mockRca: Rca = {
         id: 1,
-        title: "Test Item",
-        description: "Test description",
-        category: mockCategories[0],
-        status: "active",
-        created_at: "2024-01-01",
-        updated_at: "2024-01-01",
+        name: "Outage RCA",
+        description: "Production outage",
+        timeline: "Monday 9am",
         owner: null,
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
       };
 
-      const form = createItemForm(mockCategories, mockItem);
-      const titleInput = form.querySelector("#item-title") as HTMLInputElement;
+      const form = createRcaForm(mockRca);
+      const nameInput = form.querySelector("#rca-name") as HTMLInputElement;
       const descriptionInput = form.querySelector(
-        "#item-description"
+        "#rca-description"
       ) as HTMLTextAreaElement;
-      const statusSelect = form.querySelector("#item-status") as HTMLSelectElement;
+      const timelineInput = form.querySelector("#rca-timeline") as HTMLTextAreaElement;
 
-      expect(titleInput.value).toBe("Test Item");
-      expect(descriptionInput.value).toBe("Test description");
-      expect(statusSelect.value).toBe("active");
-      expect(form.textContent).toContain("Edit Item");
-      expect(form.querySelector("#cancel-edit")).toBeTruthy();
-    });
-
-    it("includes all categories as options", () => {
-      const form = createItemForm(mockCategories);
-      const categorySelect = form.querySelector("#item-category") as HTMLSelectElement;
-      const options = Array.from(categorySelect.options);
-
-      expect(options.length).toBe(3); // "No category" + 2 categories
-      expect(options[1].value).toBe("1");
-      expect(options[1].textContent).toContain("Tech");
-      expect(options[2].value).toBe("2");
-      expect(options[2].textContent).toContain("Books");
-    });
-  });
-
-  describe("createItemsTable", () => {
-    it("shows empty state when no items", () => {
-      const table = createItemsTable([]);
-      expect(table.textContent).toContain("No items yet");
-    });
-
-    it("creates table with items", () => {
-      const mockItems: Item[] = [
-        {
-          id: 1,
-          title: "Item 1",
-          description: "Description 1",
-          category: { id: 1, name: "Tech", description: "", created_at: "2024-01-01" },
-          status: "active",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-          owner: null,
-        },
-        {
-          id: 2,
-          title: "Item 2",
-          description: null,
-          category: null,
-          status: "inactive",
-          created_at: "2024-01-02T00:00:00Z",
-          updated_at: "2024-01-02T00:00:00Z",
-          owner: null,
-        },
-      ];
-
-      const table = createItemsTable(mockItems);
-      expect(table.querySelector("table")).toBeTruthy();
-      expect(table.textContent).toContain("Item 1");
-      expect(table.textContent).toContain("Item 2");
-      expect(table.textContent).toContain("Tech");
-      expect(table.textContent).toContain("No description");
-      expect(table.textContent).toContain("None"); // No category for item 2
-    });
-
-    it("includes edit and delete buttons for each item", () => {
-      const mockItems: Item[] = [
-        {
-          id: 1,
-          title: "Item 1",
-          description: "Description 1",
-          category: null,
-          status: "active",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-          owner: null,
-        },
-      ];
-
-      const table = createItemsTable(mockItems);
-      const editButton = table.querySelector(".edit-item") as HTMLButtonElement;
-      const deleteButton = table.querySelector(".delete-item") as HTMLButtonElement;
-
-      expect(editButton).toBeTruthy();
-      expect(deleteButton).toBeTruthy();
-      expect(editButton.dataset.itemId).toBe("1");
-      expect(deleteButton.dataset.itemId).toBe("1");
-    });
-
-    it("escapes HTML in item data", () => {
-      const mockItems: Item[] = [
-        {
-          id: 1,
-          title: "<script>alert('xss')</script>",
-          description: "<b>Bold</b>",
-          category: {
-            id: 1,
-            name: "<em>Cat</em>",
-            description: "",
-            created_at: "2024-01-01",
-          },
-          status: "active",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-          owner: null,
-        },
-      ];
-
-      const table = createItemsTable(mockItems);
-      const html = table.innerHTML;
-
-      // HTML should be escaped
-      expect(html).toContain("&lt;script&gt;");
-      expect(html).toContain("&lt;b&gt;");
-      expect(html).toContain("&lt;em&gt;");
-    });
-  });
-
-  describe("createCategoryForm", () => {
-    it("creates a category form with name and description fields", () => {
-      const form = createCategoryForm();
-      expect(form.tagName).toBe("FORM");
-      expect(form.querySelector("#category-name")).toBeTruthy();
-      expect(form.querySelector("#category-description")).toBeTruthy();
-      expect(form.querySelector('button[type="submit"]')).toBeTruthy();
+      expect(nameInput.value).toBe("Outage RCA");
+      expect(descriptionInput.value).toBe("Production outage");
+      expect(timelineInput.value).toBe("Monday 9am");
+      expect(form.textContent).toContain("Edit RCA");
+      expect(form.querySelector("#cancel-edit-rca")).toBeTruthy();
     });
 
     it("has required attribute on name field", () => {
-      const form = createCategoryForm();
-      const nameInput = form.querySelector("#category-name") as HTMLInputElement;
+      const form = createRcaForm();
+      const nameInput = form.querySelector("#rca-name") as HTMLInputElement;
       expect(nameInput.required).toBe(true);
+    });
+  });
+
+  describe("createRcaList", () => {
+    it("shows empty state when no RCAs", () => {
+      const list = createRcaList([]);
+      expect(list.textContent).toContain("No RCAs yet");
+    });
+
+    it("creates cards for each RCA", () => {
+      const mockRcas: Rca[] = [
+        {
+          id: 1,
+          name: "RCA 1",
+          description: "First RCA",
+          timeline: null,
+          owner: null,
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+        {
+          id: 2,
+          name: "RCA 2",
+          description: null,
+          timeline: null,
+          owner: null,
+          created_at: "2024-01-02T00:00:00Z",
+          updated_at: "2024-01-02T00:00:00Z",
+        },
+      ];
+
+      const list = createRcaList(mockRcas);
+      expect(list.querySelectorAll(".rca-card").length).toBe(2);
+      expect(list.textContent).toContain("RCA 1");
+      expect(list.textContent).toContain("RCA 2");
+      expect(list.textContent).toContain("First RCA");
+    });
+
+    it("includes delete buttons for each RCA", () => {
+      const mockRcas: Rca[] = [
+        {
+          id: 1,
+          name: "RCA 1",
+          description: null,
+          timeline: null,
+          owner: null,
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      const list = createRcaList(mockRcas);
+      const deleteButton = list.querySelector(".delete-rca") as HTMLButtonElement;
+      expect(deleteButton).toBeTruthy();
+      expect(deleteButton.dataset.rcaId).toBe("1");
+    });
+
+    it("escapes HTML in RCA data", () => {
+      const mockRcas: Rca[] = [
+        {
+          id: 1,
+          name: "<script>alert('xss')</script>",
+          description: "<b>Bold</b>",
+          timeline: null,
+          owner: null,
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      const list = createRcaList(mockRcas);
+      const html = list.innerHTML;
+
+      expect(html).toContain("&lt;script&gt;");
+      expect(html).toContain("&lt;b&gt;");
+    });
+  });
+
+  describe("createWhyTree", () => {
+    it("creates a tree container with nodes", () => {
+      const mockNodes: WhyNode[] = [
+        {
+          id: 1,
+          rca_id: 1,
+          parent_id: null,
+          node_type: "why",
+          content: "Server crashed",
+          order: 0,
+          children: [],
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      const tree = createWhyTree(mockNodes, 1, true);
+      expect(tree.className).toBe("why-thread");
+      expect(tree.querySelectorAll(".why-node").length).toBe(1);
+      expect(tree.textContent).toContain("Server crashed");
+    });
+
+    it("renders nested children", () => {
+      const mockNodes: WhyNode[] = [
+        {
+          id: 1,
+          rca_id: 1,
+          parent_id: null,
+          node_type: "why",
+          content: "Why 1",
+          order: 0,
+          children: [
+            {
+              id: 2,
+              rca_id: 1,
+              parent_id: 1,
+              node_type: "why",
+              content: "Because X",
+              order: 0,
+              children: [],
+              created_at: "2024-01-01T00:00:00Z",
+              updated_at: "2024-01-01T00:00:00Z",
+            },
+          ],
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      const tree = createWhyTree(mockNodes, 1, true);
+      expect(tree.querySelectorAll(".why-node").length).toBe(2);
+      expect(tree.textContent).toContain("Why 1");
+      expect(tree.textContent).toContain("Because X");
+    });
+
+    it("shows correct badges for node types", () => {
+      const mockNodes: WhyNode[] = [
+        {
+          id: 1,
+          rca_id: 1,
+          parent_id: null,
+          node_type: "why",
+          content: "A why",
+          order: 0,
+          children: [
+            {
+              id: 2,
+              rca_id: 1,
+              parent_id: 1,
+              node_type: "root_cause",
+              content: "The root cause",
+              order: 0,
+              children: [],
+              created_at: "2024-01-01T00:00:00Z",
+              updated_at: "2024-01-01T00:00:00Z",
+            },
+          ],
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      const tree = createWhyTree(mockNodes, 1, true);
+      const badges = tree.querySelectorAll(".badge");
+      expect(badges.length).toBe(2);
+      expect(badges[0]?.textContent?.trim()).toBe("Why");
+      expect(badges[1]?.textContent?.trim()).toBe("Root Cause");
     });
   });
 

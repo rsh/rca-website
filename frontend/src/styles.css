@@ -13,11 +13,91 @@ body {
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-.group-card:hover {
+.rca-card:hover {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   transition: box-shadow 0.3s ease-in-out;
 }
 
 .alert {
   margin-top: 1rem;
+}
+
+/* Reddit-style why tree */
+.why-thread {
+  margin-left: 0;
+}
+
+.why-node {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-left: 2px solid #dee2e6;
+  margin-left: 0.5rem;
+}
+
+.why-node:first-child {
+  margin-top: 0;
+}
+
+.why-thread > .why-node {
+  border-left: 2px solid #adb5bd;
+}
+
+.why-node-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.collapse-toggle {
+  font-family: monospace;
+  font-size: 0.85rem;
+  text-decoration: none !important;
+  color: #6c757d;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.collapse-toggle:hover {
+  color: #212529;
+}
+
+.why-node-content {
+  flex: 1;
+  word-break: break-word;
+}
+
+.why-node-actions {
+  padding-left: 2.25rem;
+}
+
+.why-node-actions .btn {
+  padding: 0 0.25rem;
+  font-size: 0.8rem;
+}
+
+.why-node-children {
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+
+.why-node-children.collapsed {
+  max-height: 0 !important;
+  overflow: hidden;
+}
+
+.why-node.collapsed > .why-node-children {
+  display: none;
+}
+
+.why-node.collapsed > .why-node-header .collapse-icon {
+  display: inline;
+}
+
+/* Inline node form */
+.inline-node-form {
+  margin: 0.5rem 0 0.5rem 2.25rem;
+}
+
+.inline-node-form .form-control {
+  font-size: 0.9rem;
 }

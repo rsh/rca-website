@@ -1,8 +1,8 @@
 /**
- * Reusable UI components
+ * Reusable UI components for the RCA Tool
  */
 
-import type { Category, Item } from "./api";
+import type { Rca, WhyNode } from "./api";
 
 /**
  * Create login form component
@@ -57,140 +57,132 @@ export function createRegisterForm(): HTMLElement {
 }
 
 /**
- * Create item form component
+ * Create RCA form (for create or edit)
  */
-export function createItemForm(categories: Category[], item?: Item): HTMLElement {
+export function createRcaForm(rca?: Rca): HTMLElement {
   const form = document.createElement("form");
   form.className = "card p-4 mb-4";
-
-  const categoryOptions = categories
-    .map(
-      (cat) =>
-        `<option value="${cat.id}" ${item?.category?.id === cat.id ? "selected" : ""}>
-          ${cat.name}
-        </option>`
-    )
-    .join("");
-
   form.innerHTML = `
-    <h3 class="mb-3">${item ? "Edit Item" : "Create New Item"}</h3>
+    <h3 class="mb-3">${rca ? "Edit RCA" : "Create New RCA"}</h3>
     <div class="mb-3">
-      <label for="item-title" class="form-label">Title</label>
-      <input type="text" class="form-control" id="item-title" name="title"
-             value="${item?.title || ""}" required>
+      <label for="rca-name" class="form-label">Name</label>
+      <input type="text" class="form-control" id="rca-name" name="name"
+             value="${escapeAttr(rca?.name ?? "")}" required>
     </div>
     <div class="mb-3">
-      <label for="item-description" class="form-label">Description</label>
-      <textarea class="form-control" id="item-description" name="description" rows="3">${item?.description || ""}</textarea>
+      <label for="rca-description" class="form-label">Description</label>
+      <textarea class="form-control" id="rca-description" name="description" rows="3">${escapeHtml(rca?.description ?? "")}</textarea>
     </div>
     <div class="mb-3">
-      <label for="item-category" class="form-label">Category</label>
-      <select class="form-select" id="item-category" name="category_id">
-        <option value="">No category</option>
-        ${categoryOptions}
-      </select>
-    </div>
-    <div class="mb-3">
-      <label for="item-status" class="form-label">Status</label>
-      <select class="form-select" id="item-status" name="status">
-        <option value="active" ${item?.status === "active" ? "selected" : ""}>Active</option>
-        <option value="inactive" ${item?.status === "inactive" ? "selected" : ""}>Inactive</option>
-        <option value="archived" ${item?.status === "archived" ? "selected" : ""}>Archived</option>
-      </select>
+      <label for="rca-timeline" class="form-label">Timeline</label>
+      <textarea class="form-control" id="rca-timeline" name="timeline" rows="3">${escapeHtml(rca?.timeline ?? "")}</textarea>
     </div>
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary">
-        ${item ? "Update" : "Create"} Item
+        ${rca ? "Update" : "Create"} RCA
       </button>
-      ${item ? '<button type="button" class="btn btn-secondary" id="cancel-edit">Cancel</button>' : ""}
+      ${rca ? '<button type="button" class="btn btn-secondary" id="cancel-edit-rca">Cancel</button>' : ""}
     </div>
   `;
   return form;
 }
 
 /**
- * Create items table component
+ * Create RCA list as cards
  */
-export function createItemsTable(items: Item[]): HTMLElement {
+export function createRcaList(rcas: Rca[]): HTMLElement {
   const container = document.createElement("div");
-  container.className = "card p-4";
 
-  if (items.length === 0) {
-    container.innerHTML = `
-      <h3 class="mb-3">Your Items</h3>
-      <p class="text-muted">No items yet. Create your first item above!</p>
-    `;
+  if (rcas.length === 0) {
+    container.innerHTML = `<p class="text-muted">No RCAs yet. Create your first one above!</p>`;
     return container;
   }
 
-  const tableHtml = `
-    <h3 class="mb-3">Your Items</h3>
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${items
-            .map(
-              (item) => `
-            <tr data-item-id="${item.id}">
-              <td><strong>${escapeHtml(item.title)}</strong></td>
-              <td>${item.description ? escapeHtml(item.description) : "<em>No description</em>"}</td>
-              <td>${item.category ? escapeHtml(item.category.name) : "<em>None</em>"}</td>
-              <td>
-                <span class="badge bg-${getStatusColor(item.status)}">
-                  ${item.status}
-                </span>
-              </td>
-              <td>${formatDate(item.created_at)}</td>
-              <td>
-                <button class="btn btn-sm btn-outline-primary edit-item" data-item-id="${item.id}">
-                  Edit
-                </button>
-                <button class="btn btn-sm btn-outline-danger delete-item" data-item-id="${item.id}">
-                  Delete
-                </button>
-              </td>
-            </tr>
-          `
-            )
-            .join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+  for (const rca of rcas) {
+    const card = document.createElement("div");
+    card.className = "card mb-3 rca-card";
+    card.dataset["rcaId"] = String(rca.id);
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="rca-card-clickable" style="cursor: pointer; flex: 1;">
+            <h5 class="card-title mb-1">${escapeHtml(rca.name)}</h5>
+            ${rca.description ? `<p class="card-text text-muted mb-1">${escapeHtml(rca.description)}</p>` : ""}
+            <small class="text-muted">Created ${formatDate(rca.created_at)}</small>
+          </div>
+          <button class="btn btn-sm btn-outline-danger delete-rca ms-2" data-rca-id="${rca.id}">Delete</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  }
 
-  container.innerHTML = tableHtml;
   return container;
 }
 
 /**
- * Create category form component
+ * Create the Reddit-style why tree
  */
-export function createCategoryForm(): HTMLElement {
-  const form = document.createElement("form");
-  form.className = "card p-4 mb-4";
-  form.innerHTML = `
-    <h3 class="mb-3">Create New Category</h3>
-    <div class="mb-3">
-      <label for="category-name" class="form-label">Name</label>
-      <input type="text" class="form-control" id="category-name" name="name" required>
-    </div>
-    <div class="mb-3">
-      <label for="category-description" class="form-label">Description</label>
-      <textarea class="form-control" id="category-description" name="description" rows="2"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Create Category</button>
+export function createWhyTree(
+  nodes: WhyNode[],
+  rcaId: number,
+  isTopLevel: boolean
+): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "why-thread";
+
+  for (const node of nodes) {
+    const nodeEl = createWhyNodeElement(node, rcaId, isTopLevel);
+    container.appendChild(nodeEl);
+  }
+
+  return container;
+}
+
+function createWhyNodeElement(
+  node: WhyNode,
+  rcaId: number,
+  isTopLevel: boolean
+): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "why-node";
+  wrapper.dataset["nodeId"] = String(node.id);
+
+  const hasChildren = node.children.length > 0;
+
+  const header = document.createElement("div");
+  header.className = "why-node-header";
+  header.innerHTML = `
+    <button class="collapse-toggle btn btn-sm btn-link p-0 ${hasChildren ? "" : "invisible"}" data-node-id="${node.id}">
+      <span class="collapse-icon">[&minus;]</span>
+    </button>
+    <span class="badge ${node.node_type === "root_cause" ? "bg-danger" : "bg-primary"} me-2">
+      ${node.node_type === "root_cause" ? "Root Cause" : "Why"}
+    </span>
+    <span class="why-node-content">${escapeHtml(node.content)}</span>
   `;
-  return form;
+
+  const actions = document.createElement("div");
+  actions.className = "why-node-actions mt-1";
+  actions.innerHTML = `
+    <button class="btn btn-sm btn-link add-why-child" data-node-id="${node.id}" data-rca-id="${rcaId}">Add Why</button>
+    <button class="btn btn-sm btn-link add-rc-child" data-node-id="${node.id}" data-rca-id="${rcaId}">Add Root Cause</button>
+    <button class="btn btn-sm btn-link edit-node" data-node-id="${node.id}" data-node-type="${node.node_type}" ${isTopLevel ? 'data-is-top-level="true"' : ""}>Edit</button>
+    <button class="btn btn-sm btn-link text-danger delete-node" data-node-id="${node.id}">Delete</button>
+  `;
+
+  const childrenContainer = document.createElement("div");
+  childrenContainer.className = "why-node-children";
+  if (node.children.length > 0) {
+    const childTree = createWhyTree(node.children, rcaId, false);
+    childrenContainer.appendChild(childTree);
+  }
+
+  wrapper.appendChild(header);
+  wrapper.appendChild(actions);
+  wrapper.appendChild(childrenContainer);
+
+  return wrapper;
 }
 
 /**
@@ -237,20 +229,16 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+function escapeAttr(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString();
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case "active":
-      return "success";
-    case "inactive":
-      return "warning";
-    case "archived":
-      return "secondary";
-    default:
-      return "secondary";
-  }
 }

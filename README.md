@@ -1,8 +1,15 @@
-# Web Application Template
+# Important Context
 
-A production-ready full-stack web application template with **Flask (Python) backend** and **TypeScript frontend**, featuring authentication, database models, and CRUD operations.
+This entire repository was created using AI, except this section and anything in brackets [rsh: like this]. As of the initial date of publication, 2025-10-03, no human being has ever directly edited this code.
 
-## 🚀 Quick Start
+Proceed at your own risk!
+
+
+# RCA Tool
+
+A full-stack Root Cause Analysis (RCA) tool with **Flask (Python) backend** and **TypeScript frontend**. Create RCAs with descriptions and timelines, then build 5 Whys analysis trees rendered as collapsible Reddit-style comment threads.
+
+## Quick Start
 
 ```bash
 # Run the setup script - it handles everything!
@@ -20,12 +27,12 @@ npm run dev
 # Open your browser to http://localhost:3000
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
 ├── backend/                 # Flask API server
-│   ├── models.py           # SQLAlchemy database models
+│   ├── models.py           # Rca, WhyNode, User models
 │   ├── api.py              # API routes and endpoints
 │   ├── auth.py             # JWT authentication utilities
 │   ├── schemas.py          # Pydantic validation schemas
@@ -34,8 +41,8 @@ npm run dev
 │   └── tests/              # Backend tests
 ├── frontend/               # TypeScript + Bootstrap frontend
 │   └── src/
-│       ├── index.ts        # Main application logic
-│       ├── components.ts   # Reusable UI components
+│       ├── index.ts        # Main application logic (list + detail views)
+│       ├── components.ts   # UI components (RCA forms, why tree)
 │       ├── auth.ts         # Authentication state
 │       └── api/            # API client library
 │           ├── client.ts   # Type-safe API client
@@ -46,7 +53,7 @@ npm run dev
 └── check.sh               # Run all tests and checks
 ```
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Backend (Flask + PostgreSQL)
 
@@ -66,36 +73,50 @@ npm run dev
 
 ### Database Models
 
-The template includes 3 example models demonstrating common patterns:
-
 1. **User** - Authentication and user management
    - Email, username, password (hashed)
    - JWT token generation
-   - Relationships to user-owned entities
+   - Owns RCAs
 
-2. **Category** - Simple lookup table pattern
-   - Demonstrates one-to-many relationships
-   - Shared across multiple users
+2. **Rca** - Root Cause Analysis
+   - Name, description, timeline fields
+   - Owner (foreign key to User)
+   - Has many WhyNodes (cascade delete)
 
-3. **Item** - Main domain entity pattern
-   - User ownership
-   - Foreign key relationships
-   - Status field (enum-style)
-   - Full CRUD operations
+3. **WhyNode** - A node in the 5 Whys tree
+   - Self-referential tree (parent_id foreign key)
+   - Node type: "why" or "root_cause"
+   - Content text and sibling ordering
+   - Top-level nodes must be type "why"
+   - Recursive `to_tree_dict()` for nested JSON
 
-## 🎯 Key Features
+### Frontend Views
+
+1. **RCA List View** - Shows all user's RCAs as cards with a create form
+2. **RCA Detail View** - Shows editable RCA fields + 5 Whys tree with:
+   - Collapsible Reddit-style comment threads (indented, left-bordered)
+   - Type badges (Why / Root Cause)
+   - Inline add/edit/delete for nodes
+   - Collapse/expand toggles
+
+## Key Features
 
 ### Authentication & Authorization
 - User registration and login
 - JWT-based authentication
 - Protected API endpoints
-- Session management
+- RCA ownership enforcement
 
-### CRUD Operations
-- Create, read, update, delete for Items
-- Category management
-- User profile access
-- Proper error handling
+### RCA Management
+- Create, view, update, delete RCAs
+- Name, description, and timeline fields
+
+### 5 Whys Analysis Tree
+- Add why nodes and root cause nodes
+- Nested tree structure (unlimited depth)
+- Top-level constraint: must be "why" type
+- Cascade deletion of subtrees
+- Collapsible Reddit-style rendering
 
 ### Type Safety
 - Backend: Pydantic schemas for validation
@@ -103,71 +124,11 @@ The template includes 3 example models demonstrating common patterns:
 - End-to-end type checking
 
 ### Testing
-- Backend: pytest with fixtures
-- Frontend: Jest with Testing Library
-- Run all tests: `./check.sh`
+- Backend: pytest with fixtures (97% coverage)
+- Frontend: Jest (50 tests)
+- Run all checks: `./check.sh`
 
-## 📝 Customizing for Your Project
-
-### 1. Define Your Domain Models
-
-Edit `backend/models.py` to create your own models. The template provides:
-- `User` - Keep this for authentication
-- `Category` - Example lookup table (customize or remove)
-- `Item` - Example entity (customize to your needs)
-
-### 2. Update API Endpoints
-
-Edit `backend/api.py` to add/modify endpoints:
-
-```python
-@app.route("/api/your-resource", methods=["POST"])
-@login_required
-def create_resource(current_user: User) -> tuple[dict, int]:
-    # Your logic here
-    return {"resource": resource.to_dict()}, 201
-```
-
-### 3. Add Validation Schemas
-
-Edit `backend/schemas.py` for request validation:
-
-```python
-class YourResourceCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-    # Add your fields
-```
-
-### 4. Update Frontend Types
-
-Edit `frontend/src/api/types.ts`:
-
-```typescript
-export interface YourResource {
-  id: number;
-  name: string;
-  // Add your fields
-}
-```
-
-### 5. Add API Client Methods
-
-Edit `frontend/src/api/client.ts`:
-
-```typescript
-public async createYourResource(data: YourResourceCreate): Promise<YourResource> {
-  return this.request("/api/your-resource", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-```
-
-### 6. Build UI Components
-
-Edit `frontend/src/components.ts` to create forms and views for your resources.
-
-## 🧪 Development Workflow
+## Development Workflow
 
 ### Running Tests
 
@@ -210,7 +171,7 @@ npm run format            # Prettier
 npm run type-check        # TypeScript
 ```
 
-## 🔒 Security Notes
+## Security Notes
 
 - Change `SECRET_KEY` in production (use environment variable)
 - Use HTTPS in production
@@ -218,9 +179,9 @@ npm run type-check        # TypeScript
 - Never commit `.env` files
 - Use strong passwords (min 8 chars enforced)
 
-## 🌐 Deployment
+## Deployment
 
-The template includes Terraform configurations in `infrastructure/` for deploying to cloud providers.
+The project includes Terraform configurations in `infrastructure/` for deploying to cloud providers.
 
 ### Environment Variables
 
@@ -230,7 +191,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
 SECRET_KEY=your-secret-key-here
 ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### Authentication
 
@@ -238,26 +199,20 @@ SECRET_KEY=your-secret-key-here
 - `POST /api/auth/login` - Login
 - `GET /api/auth/me` - Get current user (requires auth)
 
-### Categories
+### RCAs
 
-- `GET /api/categories` - List all categories
-- `POST /api/categories` - Create category (requires auth)
+- `GET /api/rcas` - List user's RCAs (requires auth)
+- `POST /api/rcas` - Create RCA (requires auth)
+- `GET /api/rcas/:id` - Get RCA with full why tree (requires auth)
+- `PATCH /api/rcas/:id` - Update RCA fields (requires auth)
+- `DELETE /api/rcas/:id` - Delete RCA and all nodes (requires auth)
 
-### Items
+### Why Nodes
 
-- `GET /api/items` - List user's items (requires auth)
-- `GET /api/items/:id` - Get item details (requires auth)
-- `POST /api/items` - Create item (requires auth)
-- `PATCH /api/items/:id` - Update item (requires auth)
-- `DELETE /api/items/:id` - Delete item (requires auth)
+- `POST /api/rcas/:id/nodes` - Add a why/root-cause node (requires auth)
+- `PATCH /api/nodes/:id` - Update node content/type (requires auth)
+- `DELETE /api/nodes/:id` - Delete node and children (requires auth)
 
-## 🤝 Contributing
-
-This is a template - customize it for your needs! The structure is designed to be:
-- **Easy to understand** - Clear separation of concerns
-- **Easy to extend** - Add new models and endpoints
-- **Production-ready** - Includes testing, linting, deployment
-
-## 📄 License
+## License
 
 ISC

@@ -1,19 +1,19 @@
 /**
- * TypeScript client library for Web Application API
- * Provides type-safe methods for all API endpoints
+ * TypeScript client library for RCA Tool API
  */
 
 import type {
   ApiError,
   AuthResponse,
-  Category,
-  CategoryCreateRequest,
-  Item,
-  ItemCreateRequest,
-  ItemUpdateRequest,
   LoginRequest,
+  Rca,
+  RcaCreateRequest,
+  RcaUpdateRequest,
   RegisterRequest,
   User,
+  WhyNode,
+  WhyNodeCreateRequest,
+  WhyNodeUpdateRequest,
 } from "./types";
 
 export class ApiClient {
@@ -25,9 +25,6 @@ export class ApiClient {
     this.loadToken();
   }
 
-  /**
-   * Load token from localStorage
-   */
   private loadToken(): void {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("auth_token");
@@ -37,9 +34,6 @@ export class ApiClient {
     }
   }
 
-  /**
-   * Save token to localStorage
-   */
   private saveToken(token: string): void {
     this.token = token;
     if (typeof window !== "undefined") {
@@ -47,9 +41,6 @@ export class ApiClient {
     }
   }
 
-  /**
-   * Clear token from localStorage
-   */
   public clearToken(): void {
     this.token = null;
     if (typeof window !== "undefined") {
@@ -57,23 +48,14 @@ export class ApiClient {
     }
   }
 
-  /**
-   * Get current token
-   */
   public getToken(): string | null {
     return this.token;
   }
 
-  /**
-   * Check if user is authenticated
-   */
   public isAuthenticated(): boolean {
     return this.token !== null;
   }
 
-  /**
-   * Make HTTP request
-   */
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -100,11 +82,8 @@ export class ApiClient {
     return response.json() as Promise<T>;
   }
 
-  // Authentication methods
+  // Authentication
 
-  /**
-   * Register a new user
-   */
   public async register(data: RegisterRequest): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>("/api/auth/register", {
       method: "POST",
@@ -114,9 +93,6 @@ export class ApiClient {
     return response;
   }
 
-  /**
-   * Login existing user
-   */
   public async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>("/api/auth/login", {
       method: "POST",
@@ -126,87 +102,72 @@ export class ApiClient {
     return response;
   }
 
-  /**
-   * Logout current user
-   */
   public logout(): void {
     this.clearToken();
   }
 
-  /**
-   * Get current user profile
-   */
   public async getCurrentUser(): Promise<User> {
     const response = await this.request<{ user: User }>("/api/auth/me");
     return response.user;
   }
 
-  // Category methods
+  // RCA methods
 
-  /**
-   * Get all categories
-   */
-  public async getCategories(): Promise<Category[]> {
-    const response = await this.request<{ categories: Category[] }>("/api/categories");
-    return response.categories;
+  public async getRcas(): Promise<Rca[]> {
+    const response = await this.request<{ rcas: Rca[] }>("/api/rcas");
+    return response.rcas;
   }
 
-  /**
-   * Create a new category
-   */
-  public async createCategory(data: CategoryCreateRequest): Promise<Category> {
-    const response = await this.request<{ category: Category }>("/api/categories", {
+  public async createRca(data: RcaCreateRequest): Promise<Rca> {
+    const response = await this.request<{ rca: Rca }>("/api/rcas", {
       method: "POST",
       body: JSON.stringify(data),
     });
-    return response.category;
+    return response.rca;
   }
 
-  // Item methods
-
-  /**
-   * Get all items for current user
-   */
-  public async getItems(): Promise<Item[]> {
-    const response = await this.request<{ items: Item[] }>("/api/items");
-    return response.items;
+  public async getRca(id: number): Promise<Rca> {
+    const response = await this.request<{ rca: Rca }>(`/api/rcas/${id}`);
+    return response.rca;
   }
 
-  /**
-   * Get item details
-   */
-  public async getItem(itemId: number): Promise<Item> {
-    const response = await this.request<{ item: Item }>(`/api/items/${itemId}`);
-    return response.item;
-  }
-
-  /**
-   * Create a new item
-   */
-  public async createItem(data: ItemCreateRequest): Promise<Item> {
-    const response = await this.request<{ item: Item }>("/api/items", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    return response.item;
-  }
-
-  /**
-   * Update an item
-   */
-  public async updateItem(itemId: number, data: ItemUpdateRequest): Promise<Item> {
-    const response = await this.request<{ item: Item }>(`/api/items/${itemId}`, {
+  public async updateRca(id: number, data: RcaUpdateRequest): Promise<Rca> {
+    const response = await this.request<{ rca: Rca }>(`/api/rcas/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
-    return response.item;
+    return response.rca;
   }
 
-  /**
-   * Delete an item
-   */
-  public async deleteItem(itemId: number): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/api/items/${itemId}`, {
+  public async deleteRca(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/rcas/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  // WhyNode methods
+
+  public async createNode(rcaId: number, data: WhyNodeCreateRequest): Promise<WhyNode> {
+    const response = await this.request<{ node: WhyNode }>(`/api/rcas/${rcaId}/nodes`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return response.node;
+  }
+
+  public async updateNode(
+    nodeId: number,
+    data: WhyNodeUpdateRequest
+  ): Promise<WhyNode> {
+    const response = await this.request<{ node: WhyNode }>(`/api/nodes/${nodeId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    return response.node;
+  }
+
+  public async deleteNode(nodeId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/nodes/${nodeId}`, {
       method: "DELETE",
     });
   }

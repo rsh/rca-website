@@ -158,40 +158,40 @@ describe("ApiClient", () => {
     });
   });
 
-  describe("getCategories", () => {
-    it("gets all categories", async () => {
-      const mockCategories = [
-        { id: 1, name: "Tech", description: "Technology" },
-        { id: 2, name: "Books", description: "Books" },
+  describe("getRcas", () => {
+    it("gets all RCAs", async () => {
+      const mockRcas = [
+        { id: 1, name: "Outage RCA", description: "Prod down" },
+        { id: 2, name: "Bug RCA", description: null },
       ];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ categories: mockCategories }),
+        json: async () => ({ rcas: mockRcas }),
       } as Response);
 
-      const result = await client.getCategories();
-      expect(result).toEqual(mockCategories);
+      const result = await client.getRcas();
+      expect(result).toEqual(mockRcas);
     });
   });
 
-  describe("createCategory", () => {
-    it("creates a new category", async () => {
-      const mockCategory = { id: 1, name: "Tech", description: "Technology" };
+  describe("createRca", () => {
+    it("creates a new RCA", async () => {
+      const mockRca = { id: 1, name: "New RCA", description: "Desc" };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ category: mockCategory }),
+        json: async () => ({ rca: mockRca }),
       } as Response);
 
-      const result = await client.createCategory({
-        name: "Tech",
-        description: "Technology",
+      const result = await client.createRca({
+        name: "New RCA",
+        description: "Desc",
       });
 
-      expect(result).toEqual(mockCategory);
+      expect(result).toEqual(mockRca);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/categories",
+        "http://test-api.com/api/rcas",
         expect.objectContaining({
           method: "POST",
         })
@@ -199,97 +199,47 @@ describe("ApiClient", () => {
     });
   });
 
-  describe("getItems", () => {
-    it("gets all items", async () => {
-      const mockItems = [
-        { id: 1, title: "Item 1", description: "First item", status: "active" },
-        { id: 2, title: "Item 2", description: "Second item", status: "inactive" },
-      ];
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: mockItems }),
-      } as Response);
-
-      const result = await client.getItems();
-      expect(result).toEqual(mockItems);
-    });
-  });
-
-  describe("getItem", () => {
-    it("gets a specific item", async () => {
-      const mockItem = {
+  describe("getRca", () => {
+    it("gets a specific RCA", async () => {
+      const mockRca = {
         id: 1,
-        title: "Item 1",
-        description: "First item",
-        status: "active",
+        name: "RCA 1",
+        description: "Desc",
+        nodes: [],
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ item: mockItem }),
+        json: async () => ({ rca: mockRca }),
       } as Response);
 
-      const result = await client.getItem(1);
-      expect(result).toEqual(mockItem);
+      const result = await client.getRca(1);
+      expect(result).toEqual(mockRca);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/items/1",
+        "http://test-api.com/api/rcas/1",
         expect.any(Object)
       );
     });
   });
 
-  describe("createItem", () => {
-    it("creates a new item", async () => {
-      const mockItem = {
+  describe("updateRca", () => {
+    it("updates an RCA", async () => {
+      const mockRca = {
         id: 1,
-        title: "New Item",
-        description: "A new item",
-        status: "active",
+        name: "Updated RCA",
+        description: "Updated",
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ item: mockItem }),
+        json: async () => ({ rca: mockRca }),
       } as Response);
 
-      const result = await client.createItem({
-        title: "New Item",
-        description: "A new item",
-      });
+      const result = await client.updateRca(1, { name: "Updated RCA" });
 
-      expect(result).toEqual(mockItem);
+      expect(result).toEqual(mockRca);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/items",
-        expect.objectContaining({
-          method: "POST",
-        })
-      );
-    });
-  });
-
-  describe("updateItem", () => {
-    it("updates an item", async () => {
-      const mockItem = {
-        id: 1,
-        title: "Updated Item",
-        description: "Updated description",
-        status: "archived",
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ item: mockItem }),
-      } as Response);
-
-      const result = await client.updateItem(1, {
-        title: "Updated Item",
-        status: "archived",
-      });
-
-      expect(result).toEqual(mockItem);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/items/1",
+        "http://test-api.com/api/rcas/1",
         expect.objectContaining({
           method: "PATCH",
         })
@@ -297,19 +247,94 @@ describe("ApiClient", () => {
     });
   });
 
-  describe("deleteItem", () => {
-    it("deletes an item", async () => {
-      const mockResponse = { message: "Item deleted successfully" };
+  describe("deleteRca", () => {
+    it("deletes an RCA", async () => {
+      const mockResponse = { message: "RCA deleted successfully" };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       } as Response);
 
-      const result = await client.deleteItem(1);
+      const result = await client.deleteRca(1);
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/items/1",
+        "http://test-api.com/api/rcas/1",
+        expect.objectContaining({
+          method: "DELETE",
+        })
+      );
+    });
+  });
+
+  describe("createNode", () => {
+    it("creates a why node", async () => {
+      const mockNode = {
+        id: 1,
+        rca_id: 1,
+        parent_id: null,
+        node_type: "why",
+        content: "Server crashed",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ node: mockNode }),
+      } as Response);
+
+      const result = await client.createNode(1, {
+        node_type: "why",
+        content: "Server crashed",
+      });
+
+      expect(result).toEqual(mockNode);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://test-api.com/api/rcas/1/nodes",
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
+  });
+
+  describe("updateNode", () => {
+    it("updates a node", async () => {
+      const mockNode = {
+        id: 1,
+        content: "Updated content",
+        node_type: "why",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ node: mockNode }),
+      } as Response);
+
+      const result = await client.updateNode(1, { content: "Updated content" });
+
+      expect(result).toEqual(mockNode);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://test-api.com/api/nodes/1",
+        expect.objectContaining({
+          method: "PATCH",
+        })
+      );
+    });
+  });
+
+  describe("deleteNode", () => {
+    it("deletes a node", async () => {
+      const mockResponse = { message: "Node deleted successfully" };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await client.deleteNode(1);
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://test-api.com/api/nodes/1",
         expect.objectContaining({
           method: "DELETE",
         })
@@ -324,13 +349,13 @@ describe("ApiClient", () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ items: [] }),
+        json: async () => ({ rcas: [] }),
       } as Response);
 
-      await authenticatedClient.getItems();
+      await authenticatedClient.getRcas();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/items",
+        "http://test-api.com/api/rcas",
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: "Bearer test-token",
@@ -342,13 +367,13 @@ describe("ApiClient", () => {
     it("does not include Authorization header when no token", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ categories: [] }),
+        json: async () => ({ rcas: [] }),
       } as Response);
 
-      await client.getCategories();
+      await client.getRcas();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://test-api.com/api/categories",
+        "http://test-api.com/api/rcas",
         expect.objectContaining({
           headers: expect.not.objectContaining({
             Authorization: expect.anything(),
